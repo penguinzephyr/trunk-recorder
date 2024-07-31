@@ -199,6 +199,9 @@ void print_status(std::vector<Source *> &sources, std::vector<System *> &systems
     Source *source = *it;
     source->print_recorders();
   }
+
+  BOOST_LOG_TRIVIAL(info) << "Temporary - Heres where we want to dump neighbourly information";
+
 }
 
 void manage_conventional_call(Call *call, Config &config) {
@@ -311,6 +314,10 @@ void current_system_status(TrunkMessage message, System *sys) {
   if (sys->update_status(message)) {
     plugman_setup_system(sys);
   }
+}
+
+void adjacent_system_status(TrunkMessage message, System *sys) {
+  sys->update_adjacent_status(message);
 }
 
 void current_system_sysid(TrunkMessage message, System *sys) {
@@ -601,6 +608,10 @@ void handle_message(std::vector<TrunkMessage> messages, System *sys, Config &con
       current_system_status(message, sys);
       break;
 
+    case ADJACENT_STATUS:
+      adjacent_system_status(message, sys);
+      break;
+
     case LOCATION:
       unit_location(sys, message.source, message.talkgroup);
       break;
@@ -624,15 +635,15 @@ void handle_message(std::vector<TrunkMessage> messages, System *sys, Config &con
       unit_answer_request(sys, message.source, message.talkgroup);
       break;
 
-    case INVALID_CC_MESSAGE:
-    {
-      //Do not count messages that aren't valid TSBK or MBTs.
-      int msg_count = sys->get_message_count();
-      if(msg_count > 1){
-        sys->set_message_count(msg_count - 1);
-      }
-      break;
-    }
+//    case INVALID_CC_MESSAGE:
+//    {
+//      //Do not count messages that aren't valid TSBK or MBTs.
+//      int msg_count = sys->get_message_count();
+//      if(msg_count > 1){
+//        sys->set_message_count(msg_count - 1);
+//      }
+//      break;
+//    }
 
     case TDULC:
       retune_system(sys,tb,sources);
@@ -874,7 +885,8 @@ int monitor_messages(Config &config, gr::top_block_sptr &tb, std::vector<Source 
 
     float print_status_time_diff = current_time - last_status_time;
 
-    if (print_status_time_diff > 200) {
+//    if (print_status_time_diff > 200) {
+    if (print_status_time_diff > 200) { //This is how often we return our status block
       last_status_time = current_time;
       print_status(sources, systems, calls);
     }
