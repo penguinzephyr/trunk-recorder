@@ -906,8 +906,19 @@ std::vector<TrunkMessage> P25Parser::decode_tsbk(boost::dynamic_bitset<> &tsbk, 
         known_site = "Shooters Hill";
     } else if (rfid == 2 && stid == 50) {
         known_site = "Kerrs Creek";
+    } else if (rfid == 2 && stid == 57) {
+        known_site = "Blayney";
+    } else if (rfid == 4 && stid == 68) {
+        known_site = "Mt Victoria";
+    } else if (rfid == 5 && stid == 2) {
+        known_site = "Commisioners Hill - Sofala";
+    } else if (rfid == 5 && stid == 5) {
+        known_site = "Bocoble";
+    } else if (rfid == 2 && stid == 133) {
+        known_site = "Hassans Walls";
+    } else if (rfid == 5 && stid == 103) {
+        known_site = "Monkeys Hill - Sallys Flat";
     }
-
 
     BOOST_LOG_TRIVIAL(debug) << "tsbk3c\tAdjacent Status\t rfid " << std::dec << rfid
                              << " stid " << stid
