@@ -896,10 +896,18 @@ std::vector<TrunkMessage> P25Parser::decode_tsbk(boost::dynamic_bitset<> &tsbk, 
     bool failed = (bool)bitset_shift_mask(tsbk, 64, 0x40);
     bool valid = (bool)bitset_shift_mask(tsbk, 64, 0x20);
     bool active = (bool)bitset_shift_mask(tsbk, 64, 0x10);
+    std::string known_site = "Unknown";
 
+    if (rfid == 2 && stid == 5) {
+        known_site << "Orange";
+    }
 
+    BOOST_LOG_TRIVIAL(debug) << "tsbk3c\tAdjacent Status\t rfid " << std::dec << rfid
+                             << " stid " << stid
+                             << " ch1 " << ch1 << "(" << channel_id_to_string(ch1, sys_num) << ") "
+                             << "Known Site: " << known_site;
     // Testing
-    BOOST_LOG_TRIVIAL(debug) << "tsbk3c\tAdjacent Status\t rfid " << std::dec << rfid << " stid " << stid << " ch1 " << ch1 << "(" << channel_id_to_string(ch1, sys_num) << ") ";
+    //BOOST_LOG_TRIVIAL(debug) << "tsbk3c\tAdjacent Status\t rfid " << std::dec << rfid << " stid " << stid << " ch1 " << ch1 << "(" << channel_id_to_string(ch1, sys_num) << ") ";
 
     message.message_type = ADJACENT_STATUS;
     message.sys_id = syid;
