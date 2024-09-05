@@ -155,9 +155,36 @@ bool System_impl::update_adjacent_status(TrunkMessage message) {
     //message.valid = valid;
     //message.active = active;
 
+    std::string known_site = "Unknown";
+
+    if (message.sys_rfss == 002 && message.sys_site_id == 128) {
+        known_site = "Oberon";
+    } else if (message.sys_rfss == 007 && message.sys_site_id == 013) {
+        known_site = "Lithgow - Braceys Lookout";
+    } else if (message.sys_rfss == 002 && message.sys_site_id == 129) {
+        known_site = "Shooters Hill";
+    } else if (message.sys_rfss == 002 && message.sys_site_id == 050) {
+        known_site = "Kerrs Creek";
+    } else if (message.sys_rfss == 002 && message.sys_site_id == 057) {
+        known_site = "Blayney";
+    } else if (message.sys_rfss == 004 && message.sys_site_id == 068) {
+        known_site = "Mt Victoria";
+    } else if (message.sys_rfss == 005 && message.sys_site_id == 002) {
+        known_site = "Commissioners Hill - Sofala";
+    } else if (message.sys_rfss == 005 && message.sys_site_id == 005) {
+        known_site = "Bocoble";
+    } else if (message.sys_rfss == 002 && message.sys_site_id == 133) {
+        known_site = "Hassans Walls";
+    } else if (message.sys_rfss == 002 && message.sys_site_id == 130) {
+        known_site = "Mt Ryan (Triangle Flat)";
+    } else if (message.sys_rfss == 005 && message.sys_site_id == 103) {
+        known_site = "Monkeys Hill - Sallys Flat";
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "[" << short_name << "]\tAdjacent Site"
                             << " RFSS: " << std::setw(3) << std::setfill('0') << message.sys_rfss
-                            << " SITE ID: " << std::setw(3) << std::setfill('0') << message.sys_site_id;
+                            << " SITE ID: " << std::setw(3) << std::setfill('0') << message.sys_site_id
+                            << " Site Name: " << std::setw(3) << std::setfill('0') << known_site;
   return false;
 }
 
