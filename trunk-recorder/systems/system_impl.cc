@@ -167,7 +167,7 @@ bool System_impl::update_adjacent_status(TrunkMessage message) {
         known_site = "Kerrs Creek";
     } else if (message.sys_rfss == 002 && message.sys_site_id == 057) {
         known_site = "Blayney";
-    } else if (message.sys_rfss == 004 && message.sys_site_id == 068) {
+    } else if (message.sys_rfss == 004 && message.sys_site_id == 000) {
         known_site = "Mt Victoria";
     } else if (message.sys_rfss == 005 && message.sys_site_id == 002) {
         known_site = "Commissioners Hill - Sofala";
