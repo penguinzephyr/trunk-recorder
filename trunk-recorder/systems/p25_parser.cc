@@ -916,6 +916,8 @@ std::vector<TrunkMessage> P25Parser::decode_tsbk(boost::dynamic_bitset<> &tsbk, 
         known_site = "Bocoble";
     } else if (rfid == 2 && stid == 133) {
         known_site = "Hassans Walls";
+    } else if (rfid == 2 && stid == 130) {
+        known_site = "Mt Ryan (Triangle Flat)";
     } else if (rfid == 5 && stid == 103) {
         known_site = "Monkeys Hill - Sallys Flat";
     }
