@@ -898,8 +898,8 @@ std::vector<TrunkMessage> P25Parser::decode_tsbk(boost::dynamic_bitset<> &tsbk, 
     bool active = (bool)bitset_shift_mask(tsbk, 64, 0x10);
     std::string known_site = "Unknown";
 
-    if (rfid == 2 && stid == 5) {
-        known_site << "Orange";
+    if (rfid == 5 && stid == 2) {
+        known_site = "Orange";
     }
 
     BOOST_LOG_TRIVIAL(debug) << "tsbk3c\tAdjacent Status\t rfid " << std::dec << rfid
