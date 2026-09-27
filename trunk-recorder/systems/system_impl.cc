@@ -313,10 +313,12 @@ std::vector<std::string> System_impl::get_adjacent_sites() {
   std::vector<std::string> result;
   for (const auto &site : adjacent_sites) {
     std::ostringstream line;
-    line << "[" << short_name << "]\tNeighbour RFSS " << site.first.first << " Site " << site.first.second;
     auto known = known_sites.find(site.first);
+    if (known == known_sites.end()) line << Color::YEL;
+    line << "[" << short_name << "]\tNeighbour RFSS " << site.first.first << " Site " << site.first.second;
     if (known != known_sites.end()) line << " (" << known->second << ")";
     if (site.second > 0) line << " Control Channel " << format_freq(site.second);
+    if (known == known_sites.end()) line << Color::RST;
     result.push_back(line.str());
   }
   return result;

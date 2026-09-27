@@ -922,7 +922,7 @@ A **Header Row** is required for the file and the headers must match the column 
 
 ## knownSitesFile
 
-For P25 trunked systems, `knownSitesFile` may point to a CSV used to label adjacent sites in the periodic control-channel information output. Neighbor frequency and RFSS/site IDs are learned from P25 adjacent-status broadcasts; the CSV supplies the site identity details.
+For P25 trunked systems, `knownSitesFile` may point to a CSV used to label adjacent sites in the periodic control-channel information output. Neighbor frequency and RFSS/site IDs are learned from P25 adjacent-status broadcasts; the CSV supplies the site name. Neighbors that do not match an entry are highlighted in yellow when console colors are enabled. Neighbor information is still printed when no file is configured.
 
 | RFSS | SITEID | NAME |
 |------|--------|------|
