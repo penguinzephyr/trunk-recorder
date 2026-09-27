@@ -1,5 +1,8 @@
 #include "system_impl.h"
 #include "system.h"
+#include "../formatter.h"
+#include <fstream>
+#include <sstream>
 
 System *System::make(int sys_num) {
   return (System *)new System_impl(sys_num);
@@ -275,6 +278,45 @@ bool System_impl::update_sysid(TrunkMessage message) {
     return true;
   }
   return false;
+}
+
+void System_impl::set_known_sites_file(std::string file) {
+  known_sites_file = file;
+  if (file.empty()) return;
+  std::ifstream input(file);
+  if (!input) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to open known sites file: " << file;
+    return;
+  }
+  std::string line;
+  std::getline(input, line); // WACN,SYSID,NAC,RFSS,SITEID,NAME
+  while (std::getline(input, line)) {
+    std::stringstream row(line);
+    std::string wacn, sysid, site_nac, rfss, site, name;
+    if (!std::getline(row, wacn, ',') || !std::getline(row, sysid, ',') ||
+        !std::getline(row, site_nac, ',') || !std::getline(row, rfss, ',') ||
+        !std::getline(row, site, ',') || !std::getline(row, name)) continue;
+    try { known_sites[{std::stoi(rfss), std::stoi(site)}] = name + " WACN " + wacn + " SYSID " + sysid + " NAC " + site_nac; }
+    catch (...) { BOOST_LOG_TRIVIAL(warning) << "Ignoring malformed known site row: " << line; }
+  }
+  BOOST_LOG_TRIVIAL(info) << "Loaded " << known_sites.size() << " known P25 sites from " << file;
+}
+
+void System_impl::update_adjacent_site(TrunkMessage message) {
+  adjacent_sites[{static_cast<int>(message.neighbor_rfss), static_cast<int>(message.neighbor_site_id)}] = message.freq;
+}
+
+std::vector<std::string> System_impl::get_adjacent_sites() {
+  std::vector<std::string> result;
+  for (const auto &site : adjacent_sites) {
+    std::ostringstream line;
+    line << "[" << short_name << "]\tNeighbor RFSS " << site.first.first << " Site " << site.first.second;
+    auto known = known_sites.find(site.first);
+    if (known != known_sites.end()) line << " (" << known->second << ")";
+    if (site.second > 0) line << " Control Channel " << format_freq(site.second);
+    result.push_back(line.str());
+  }
+  return result;
 }
 
  gr::msg_queue::sptr System_impl::get_msg_queue() {
