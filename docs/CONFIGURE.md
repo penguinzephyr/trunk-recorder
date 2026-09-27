@@ -272,7 +272,7 @@ During the status display, each source will report the running average as well a
 | bandplanSpacing          |          |                            | number                                                                                                                 | *SmartNet, 400_custom only* The channel spacing, specified in Hz. Typically this is *25000*. |
 | bandplanOffset           |          |                            | number                                                                                                                 | *SmartNet, 400_custom only* The offset used to calculate frequencies. |
 | customFrequencyTableFile |          |                            | string                                                                                                                 | *P25 only* The filename for a CSV file that provides information about the P25 custom frequency tables. The format for the file is described below. |
-| knownSitesFile           |          |                            | string                                                                                                                 | *P25 only* Optional CSV of known sites. Advertised neighboring RFSS/site IDs are matched to this file and printed with the site's WACN, system ID, NAC, and name. CSV columns: `WACN,SYSID,NAC,RFSS,SITEID,NAME`. |
+| knownSitesFile           |          |                            | string                                                                                                                 | *P25 only* Optional CSV of known sites. Advertised neighboring RFSS/site IDs are matched to this file and printed with the site's name. CSV columns: `RFSS,SITEID,NAME`. |
 | decodeMDC                |          | false                      | **true** / **false**                                                                                                   | *Conventional systems only* enable the MDC-1200 signaling decoder. |
 | decodeFSync              |          | false                      | **true** / **false**                                                                                                   | *Conventional systems only* enable the Fleet Sync signaling decoder. |
 | decodeStar               |          | false                      | **true** / **false**                                                                                                   | *Conventional systems only* enable the Star signaling decoder. |
@@ -924,6 +924,6 @@ A **Header Row** is required for the file and the headers must match the column 
 
 For P25 trunked systems, `knownSitesFile` may point to a CSV used to label adjacent sites in the periodic control-channel information output. Neighbor frequency and RFSS/site IDs are learned from P25 adjacent-status broadcasts; the CSV supplies the site identity details.
 
-| WACN | SYSID | NAC | RFSS | SITEID | NAME |
-|------|-------|-----|------|--------|------|
-| 12345 | 321 | 293 | 1 | 7 | North Ridge |
+| RFSS | SITEID | NAME |
+|------|--------|------|
+| 1 | 7 | North Ridge |

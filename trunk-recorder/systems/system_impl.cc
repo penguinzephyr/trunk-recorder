@@ -289,14 +289,17 @@ void System_impl::set_known_sites_file(std::string file) {
     return;
   }
   std::string line;
-  std::getline(input, line); // WACN,SYSID,NAC,RFSS,SITEID,NAME
+  std::getline(input, line); // RFSS,SITEID,NAME
   while (std::getline(input, line)) {
     std::stringstream row(line);
-    std::string wacn, sysid, site_nac, rfss, site, name;
-    if (!std::getline(row, wacn, ',') || !std::getline(row, sysid, ',') ||
-        !std::getline(row, site_nac, ',') || !std::getline(row, rfss, ',') ||
-        !std::getline(row, site, ',') || !std::getline(row, name)) continue;
-    try { known_sites[{std::stoi(rfss), std::stoi(site)}] = name + " WACN " + wacn + " SYSID " + sysid + " NAC " + site_nac; }
+    std::string rfss, site, name;
+    if (!std::getline(row, rfss, ',') || !std::getline(row, site, ',') || !std::getline(row, name)) continue;
+    if (name.size() >= 2 && name.front() == '"' && name.back() == '"') {
+      name = name.substr(1, name.size() - 2);
+      size_t quote = 0;
+      while ((quote = name.find("\"\"", quote)) != std::string::npos) name.replace(quote, 2, "\"");
+    }
+    try { known_sites[{std::stoi(rfss), std::stoi(site)}] = name; }
     catch (...) { BOOST_LOG_TRIVIAL(warning) << "Ignoring malformed known site row: " << line; }
   }
   BOOST_LOG_TRIVIAL(info) << "Loaded " << known_sites.size() << " known P25 sites from " << file;
@@ -310,7 +313,7 @@ std::vector<std::string> System_impl::get_adjacent_sites() {
   std::vector<std::string> result;
   for (const auto &site : adjacent_sites) {
     std::ostringstream line;
-    line << "[" << short_name << "]\tNeighbor RFSS " << site.first.first << " Site " << site.first.second;
+    line << "[" << short_name << "]\tNeighbour RFSS " << site.first.first << " Site " << site.first.second;
     auto known = known_sites.find(site.first);
     if (known != known_sites.end()) line << " (" << known->second << ")";
     if (site.second > 0) line << " Control Channel " << format_freq(site.second);
