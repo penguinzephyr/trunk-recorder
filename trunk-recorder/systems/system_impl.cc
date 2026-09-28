@@ -328,6 +328,11 @@ std::map<std::pair<int, int>, double> System_impl::get_adjacent_site_frequencies
   return adjacent_sites;
 }
 
+std::string System_impl::get_known_site_name(int rfss, int site) {
+  auto known = known_sites.find({rfss, site});
+  return known == known_sites.end() ? std::string() : known->second;
+}
+
  gr::msg_queue::sptr System_impl::get_msg_queue() {
   return msg_queue;
  }

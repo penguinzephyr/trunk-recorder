@@ -2,6 +2,7 @@
 #include "recorders/p25_recorder.h"
 #include "systems/dmr_parser.h"
 #include <chrono>
+#include <iomanip>
 #include <thread>
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/core.hpp>
@@ -881,7 +882,7 @@ void process_recorder_message_queues(std::vector<Call *> &calls) {
 
 int check_neighbours(gr::top_block_sptr &tb, std::vector<Source *> &sources, std::vector<System *> &systems) {
   constexpr auto discovery_time = std::chrono::seconds(10);
-  constexpr auto channel_check_time = std::chrono::seconds(3);
+  constexpr auto channel_check_time = std::chrono::seconds(10);
   gr::message::sptr msg;
   P25Parser parser;
   std::vector<System_impl *> p25_systems;
@@ -961,8 +962,10 @@ int check_neighbours(gr::top_block_sptr &tb, std::vector<Source *> &sources, std
     auto *system = neighbour.system;
     const double original_frequency = original_frequencies[system];
     const double frequency = neighbour.frequency;
+    const std::string site_name = system->get_known_site_name(neighbour.rfss, neighbour.site);
     const std::string identity = "[" + system->get_short_name() + "] Neighbour RFSS " +
-        std::to_string(neighbour.rfss) + " Site " + std::to_string(neighbour.site);
+        std::to_string(neighbour.rfss) + " Site " + std::to_string(neighbour.site) +
+        (site_name.empty() ? "" : " (" + site_name + ")");
 
     Source *source = nullptr;
     for (auto *candidate : sources) {
@@ -981,17 +984,21 @@ int check_neighbours(gr::top_block_sptr &tb, std::vector<Source *> &sources, std
                             << " on source " << source->get_num();
     tune_system(system, source, frequency);
     int decoded = 0;
-    const auto check_end = std::chrono::steady_clock::now() + channel_check_time;
+    const auto check_start = std::chrono::steady_clock::now();
+    const auto check_end = check_start + channel_check_time;
     while (std::chrono::steady_clock::now() < check_end) {
       decoded += drain_p25_messages(system);
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    const double elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - check_start).count();
+    const double messages_per_second = elapsed_seconds > 0.0 ? decoded / elapsed_seconds : 0.0;
     if (decoded > 0) {
       BOOST_LOG_TRIVIAL(info) << identity << " Control Channel " << format_freq(frequency)
-                              << " SUCCESS (" << decoded << " decoded messages in " << channel_check_time.count() << " seconds)";
+                              << " SUCCESS (" << std::fixed << std::setprecision(2) << messages_per_second
+                              << " decoded msg/sec, " << decoded << " messages in " << elapsed_seconds << " seconds)";
     } else {
       BOOST_LOG_TRIVIAL(warning) << identity << " Control Channel " << format_freq(frequency)
-                                 << " FAILED (no decoded messages in " << channel_check_time.count() << " seconds)";
+                                 << " FAILED (0.00 decoded msg/sec, no valid messages in " << elapsed_seconds << " seconds)";
     }
     tune_system(system, original_sources[system], original_frequency);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

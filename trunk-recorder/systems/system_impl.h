@@ -249,6 +249,7 @@ public:
   void set_known_sites_file(std::string file) override;
   std::vector<std::string> get_adjacent_sites() override;
   std::map<std::pair<int, int>, double> get_adjacent_site_frequencies() override;
+  std::string get_known_site_name(int rfss, int site) override;
   int get_sys_num() override;
   void set_system_type(std::string) override;
   std::string get_talkgroups_file() override;

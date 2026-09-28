@@ -159,6 +159,7 @@ public:
   virtual void set_known_sites_file(std::string file) = 0;
   virtual std::vector<std::string> get_adjacent_sites() = 0;
   virtual std::map<std::pair<int, int>, double> get_adjacent_site_frequencies() = 0;
+  virtual std::string get_known_site_name(int rfss, int site) = 0;
   virtual int get_sys_num() = 0;
   virtual void set_system_type(std::string) = 0;
   virtual std::string get_talkgroups_file() = 0;
