@@ -125,12 +125,13 @@ bool setup_conventional_system(System *system, Config &config, gr::top_block_spt
   return system_added;
 }
 
-bool setup_systems(Config &config, gr::top_block_sptr &tb, std::vector<Source *> &sources, std::vector<System *> &systems, std::vector<Call *> &calls) {
+bool setup_systems(Config &config, gr::top_block_sptr &tb, std::vector<Source *> &sources, std::vector<System *> &systems, std::vector<Call *> &calls, bool p25_only) {
 
   Source *source = NULL;
 
   for (vector<System *>::iterator sys_it = systems.begin(); sys_it != systems.end(); sys_it++) {
     System_impl *system = (System_impl *)*sys_it;
+    if (p25_only && system->get_system_type() != "p25") continue;
     // bool    source_found = false;
     bool system_added = false;
     if ((system->get_system_type() == "conventional") || (system->get_system_type() == "conventionalP25") || (system->get_system_type() == "conventionalDMR")) {

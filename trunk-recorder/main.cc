@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   boost::log::core::get()->set_filter(boost::log::trivial::severity >= boost::log::trivial::info);
 
   boost::program_options::options_description desc("Options");
-  desc.add_options()("help,h", "Help screen")("config,c", boost::program_options::value<string>()->default_value("./config.json"), "Config File")("version,v", "Version Information");
+  desc.add_options()("help,h", "Help screen")("config,c", boost::program_options::value<string>()->default_value("./config.json"), "Config File")("version,v", "Version Information")("check-neighbours", "Scan P25 neighbours and test their advertised control channels");
 
   boost::program_options::variables_map vm;
   boost::program_options::store(parse_command_line(argc, argv, desc), vm);
@@ -157,13 +157,18 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  start_plugins(sources, systems);
+  const bool neighbour_check = vm.count("check-neighbours") != 0;
+  if (!neighbour_check) start_plugins(sources, systems);
 
-  if (setup_systems(config, tb, sources, systems, calls)) {
+  if (setup_systems(config, tb, sources, systems, calls, neighbour_check)) {
 
     tb->start();
 
-    exit_code = monitor_messages(config, tb, sources, systems, calls);
+    if (neighbour_check) {
+      exit_code = check_neighbours(tb, sources, systems);
+    } else {
+      exit_code = monitor_messages(config, tb, sources, systems, calls);
+    }
 
     // ------------------------------------------------------------------
     // -- stop flow graph execution
@@ -171,8 +176,10 @@ int main(int argc, char **argv) {
     BOOST_LOG_TRIVIAL(info) << "stopping flow graph" << std::endl;
     stop_flowgraph_or_exit(tb, exit_code);
 
-    BOOST_LOG_TRIVIAL(info) << "stopping plugins" << std::endl;
-    stop_plugins();
+    if (!neighbour_check) {
+      BOOST_LOG_TRIVIAL(info) << "stopping plugins" << std::endl;
+      stop_plugins();
+    }
   } else {
     BOOST_LOG_TRIVIAL(error) << "Unable to setup a System to record, exiting..." << std::endl;
   }

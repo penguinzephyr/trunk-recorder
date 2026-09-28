@@ -324,6 +324,10 @@ std::vector<std::string> System_impl::get_adjacent_sites() {
   return result;
 }
 
+std::map<std::pair<int, int>, double> System_impl::get_adjacent_site_frequencies() {
+  return adjacent_sites;
+}
+
  gr::msg_queue::sptr System_impl::get_msg_queue() {
   return msg_queue;
  }

@@ -2,6 +2,7 @@
 #include "recorders/p25_recorder.h"
 #include "systems/dmr_parser.h"
 #include <chrono>
+#include <thread>
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/core.hpp>
 
@@ -876,6 +877,127 @@ void process_recorder_message_queues(std::vector<Call *> &calls) {
       }
     }
   }
+}
+
+int check_neighbours(gr::top_block_sptr &tb, std::vector<Source *> &sources, std::vector<System *> &systems) {
+  constexpr auto discovery_time = std::chrono::seconds(10);
+  constexpr auto channel_check_time = std::chrono::seconds(3);
+  gr::message::sptr msg;
+  P25Parser parser;
+  std::vector<System_impl *> p25_systems;
+  std::map<System_impl *, double> original_frequencies;
+  std::map<System_impl *, Source *> original_sources;
+  for (System *sys : systems) {
+    if (sys->get_system_type() != "p25") continue;
+    auto *p25_system = static_cast<System_impl *>(sys);
+    if (!p25_system->p25_trunking || !p25_system->get_source()) {
+      BOOST_LOG_TRIVIAL(error) << "[" << sys->get_short_name() << "] P25 receiver was not initialized";
+      continue;
+    }
+    p25_systems.push_back(p25_system);
+    original_frequencies[p25_system] = p25_system->p25_trunking->get_freq();
+    original_sources[p25_system] = p25_system->get_source();
+    BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name() << "] Listening for neighbours on "
+                            << format_freq(original_frequencies[p25_system]);
+  }
+  if (p25_systems.empty()) {
+    BOOST_LOG_TRIVIAL(error) << "No configured P25 trunking systems to check";
+    return EXIT_FAILURE;
+  }
+
+  auto drain_p25_messages = [&](System_impl *system) {
+    int decoded = 0;
+    msg = system->get_msg_queue()->delete_head_nowait();
+    while (msg) {
+      const auto messages = parser.parse_message(msg, system);
+      for (const auto &message : messages) {
+        if (message.message_type != INVALID_CC_MESSAGE && message.message_type != UNKNOWN) ++decoded;
+        if (message.message_type == ADJACENT_SITE) system->update_adjacent_site(message);
+      }
+      msg = system->get_msg_queue()->delete_head_nowait();
+    }
+    return decoded;
+  };
+
+  auto tune_system = [&](System_impl *system, Source *target_source, double frequency) {
+    Source *current_source = system->get_source();
+    if (current_source == target_source) {
+      system->p25_trunking->tune_freq(frequency);
+      return;
+    }
+    tb->lock();
+    tb->disconnect(current_source->get_src_block(), 0, system->p25_trunking, 0);
+    system->set_source(target_source);
+    system->p25_trunking = make_p25_trunking(frequency, target_source->get_center(), target_source->get_rate(), system);
+    tb->connect(target_source->get_src_block(), 0, system->p25_trunking, 0);
+    tb->unlock();
+  };
+
+  const auto discovery_end = std::chrono::steady_clock::now() + discovery_time;
+  while (std::chrono::steady_clock::now() < discovery_end) {
+    for (auto *system : p25_systems) drain_p25_messages(system);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
+  struct NeighbourCheck {
+    System_impl *system;
+    int rfss;
+    int site;
+    double frequency;
+  };
+  std::vector<NeighbourCheck> neighbours;
+  for (auto *system : p25_systems) {
+    for (const auto &line : system->get_adjacent_sites()) BOOST_LOG_TRIVIAL(info) << line;
+    for (const auto &site : system->get_adjacent_site_frequencies()) {
+      if (site.second > 0) neighbours.push_back({system, site.first.first, site.first.second, site.second});
+    }
+  }
+  if (neighbours.empty()) {
+    BOOST_LOG_TRIVIAL(warning) << "No neighbours with advertised control-channel frequencies were decoded";
+    return EXIT_SUCCESS;
+  }
+
+  for (const auto &neighbour : neighbours) {
+    auto *system = neighbour.system;
+    const double original_frequency = original_frequencies[system];
+    const double frequency = neighbour.frequency;
+    const std::string identity = "[" + system->get_short_name() + "] Neighbour RFSS " +
+        std::to_string(neighbour.rfss) + " Site " + std::to_string(neighbour.site);
+
+    Source *source = nullptr;
+    for (auto *candidate : sources) {
+      if (candidate->get_min_hz() <= frequency && candidate->get_max_hz() >= frequency) {
+        source = candidate;
+        break;
+      }
+    }
+    if (!source) {
+      BOOST_LOG_TRIVIAL(warning) << identity << " Control Channel " << format_freq(frequency)
+                                 << " not checked: outside every configured source bandwidth";
+      continue;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << identity << " testing Control Channel " << format_freq(frequency)
+                            << " on source " << source->get_num();
+    tune_system(system, source, frequency);
+    int decoded = 0;
+    const auto check_end = std::chrono::steady_clock::now() + channel_check_time;
+    while (std::chrono::steady_clock::now() < check_end) {
+      decoded += drain_p25_messages(system);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    if (decoded > 0) {
+      BOOST_LOG_TRIVIAL(info) << identity << " Control Channel " << format_freq(frequency)
+                              << " SUCCESS (" << decoded << " decoded messages in " << channel_check_time.count() << " seconds)";
+    } else {
+      BOOST_LOG_TRIVIAL(warning) << identity << " Control Channel " << format_freq(frequency)
+                                 << " FAILED (no decoded messages in " << channel_check_time.count() << " seconds)";
+    }
+    tune_system(system, original_sources[system], original_frequency);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    drain_p25_messages(system);
+  }
+  return EXIT_SUCCESS;
 }
 
 int monitor_messages(Config &config, gr::top_block_sptr &tb, std::vector<Source *> &sources, std::vector<System *> &systems, std::vector<Call *> &calls) {
